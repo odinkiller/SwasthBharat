@@ -39,9 +39,13 @@ npm run setup                            # installs backend + frontend deps
 cp backend/.env.example backend/.env     # PowerShell: Copy-Item backend/.env.example backend/.env
 ```
 
-Open `backend/.env` and set `JWT_SECRET` to any long random string (everything else can
-stay as-is — the app runs against an in-memory database by default, no MongoDB setup
-needed).
+Open `backend/.env` and make two changes: set `JWT_SECRET` to any long random string, and
+set `USE_IN_MEMORY_DB=true` so no MongoDB setup is needed. The second one matters — the
+example file ships a placeholder Atlas URI, and leaving it in place makes startup fail
+with `querySrv ENOTFOUND _mongodb._tcp.cluster0.xxxxx.mongodb.net`.
+
+> Step-by-step setup, troubleshooting, the git push workflow, and deployment notes:
+> **[DEVELOPING.md](./DEVELOPING.md)**
 
 Then, in two terminals:
 
