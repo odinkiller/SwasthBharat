@@ -238,12 +238,35 @@ Vercel config is already committed — no second host needed:
 Deploy as two Vercel projects from the same repo: one with Root Directory set to the app root
 (the API), one set to `frontend/` (the PWA).
 
-Two things differ from local:
+Three things differ from local:
 
 - **`USE_IN_MEMORY_DB` cannot be used.** A serverless function is frozen between requests, so
   set a real `MONGO_URI` (Atlas) plus `JWT_SECRET` and `SETUP_TOKEN` as Vercel environment
   variables. Add Vercel's egress to the Atlas IP allow-list. A misconfiguration here returns
   `503 DATABASE_UNAVAILABLE` with the specific reason in the response.
-- **Socket.io is not initialised.** A function can't hold a WebSocket open. The emit helpers in
-  `backend/src/realtime/io.js` no-op safely, and the doctor dashboard polls instead. Live push
+- **Nothing seeds the deployed database, so seed it yourself or no one can log in.**
+  `api/index.js` only builds the app and connects; it never seeds. `server.js` auto-seeds *only*
+  in in-memory mode. Against a fresh Atlas database the deploy comes up healthy and then
+  answers every login with `401 INVALID_CREDENTIALS`, because the `users` collection is empty.
+  Seed it once from your laptop before demoing:
+
+  ```powershell
+  # backend/.env: set the real MONGO_URI and USE_IN_MEMORY_DB=false
+  npm run seed
+  # then put USE_IN_MEMORY_DB=true back for local dev
+  ```
+
+- **Socket.io is not initialised.** A function can't hold a WebSocket open, so `/api/health`
+  reports `"realtime":{"enabled":false}` in production. The emit helpers in
+  `backend/src/realtime/io.js` no-op safely and the doctor dashboard polls instead. Live push
   still works when you run the API locally.
+
+### Do not set these in Vercel
+
+- `VITE_SHOW_DEMO_LOGINS` — puts tap-to-fill credentials on the login screen of a public site.
+- `USE_IN_MEMORY_DB` — see above.
+- `FIREBASE_AUTH_EMULATOR_HOST` — the emulator accepts unsigned tokens, so anyone could mint a
+  valid login. The server refuses to start with this set while `NODE_ENV=production`.
+
+Also note `NODE_ENV=production` makes the placeholder `JWT_SECRET` fatal rather than a warning:
+the server throws on startup until you set a real one.
