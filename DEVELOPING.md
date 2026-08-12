@@ -229,14 +229,43 @@ git checkout -- SwasthBharat-b0a58f121e010d5422105d2f71cb400eea165949/backend/pa
 
 ## Deploying
 
-Vercel config is already committed — no second host needed:
+Live at <https://swasthbharat-api.vercel.app> — **one** Vercel project serving both the PWA and
+the API from the app root. No second host needed.
 
-- `vercel.json` at the app root rewrites `/api/(.*)` to `api/index.js`, which wraps the same
-  `createApp()` the local server uses.
-- `frontend/vercel.json` handles SPA routing for the PWA.
+It has to be one project, not two. `vite.config.ts` and `tsconfig.json` both resolve
+`@shared/*` to `../shared/*`, which is *outside* `frontend/`. Vercel only uploads the Root
+Directory, so a project rooted at `frontend/` fails the build with
+`Cannot find module '@shared/risk/index.js'`. Rooting at the app root keeps `shared/` in scope,
+and as a bonus the browser talks to `/api` same-origin, so `VITE_API_BASE_URL` stays unset.
 
-Deploy as two Vercel projects from the same repo: one with Root Directory set to the app root
-(the API), one set to `frontend/` (the PWA).
+`vercel.json` at the app root does the whole job:
+
+```jsonc
+{
+  "framework": null,                 // CLI service auto-detection would set "services" and fail
+  "installCommand": "npm install && npm install --prefix frontend --include=dev",
+  "buildCommand": "npm run build:web",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },   // serverless Express
+    { "source": "/(.*)",     "destination": "/index.html" }   // SPA fallback
+  ]
+}
+```
+
+Two non-obvious details in there. `--include=dev` is required because Vercel builds with
+`NODE_ENV=production`, under which npm would skip `vite` and `typescript` — both
+devDependencies. And `"framework": null` is required because the CLI detects `frontend/` (Vite)
+and `backend/` (Express) as separate services and sets the project framework to `services`,
+after which the build fails with "no services are declared". `vercel.json` also rejects
+`//comment` keys, unlike this project's `package.json`.
+
+Deploy with `npx vercel deploy --prod` from the app root.
+
+Environment variables live in the Vercel project (Production scope): `MONGO_URI`, `JWT_SECRET`,
+`SETUP_TOKEN`, and `CORS_ORIGINS` set to the deployment origin. `CORS_ORIGINS` is needed even
+though the API is same-origin — browsers send an `Origin` header on POSTs, and `app.js` checks
+it against that list.
 
 Three things differ from local:
 

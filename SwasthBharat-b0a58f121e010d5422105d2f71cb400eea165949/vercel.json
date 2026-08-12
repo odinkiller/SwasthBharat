@@ -1,7 +1,10 @@
 {
-  "installCommand": "npm install",
+  "framework": null,
+  "installCommand": "npm install && npm install --prefix frontend --include=dev",
+  "buildCommand": "npm run build:web",
+  "outputDirectory": "frontend/dist",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index" },
-    { "source": "/", "destination": "/api/index" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

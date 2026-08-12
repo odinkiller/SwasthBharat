@@ -16,6 +16,10 @@ dev-dist/
 .env.*.bak
 !.env.example
 
+# Vercel CLI project link (project + org ids, per-deployer) and its local OIDC token.
+# Created by `vercel link`. Matches nested copies too, e.g. frontend/.vercel/.
+.vercel/
+
 # Firebase Hosting project binding. Not a secret, but project-specific per deployer —
 # copy .firebaserc.example and fill in your own project id.
 .firebaserc
